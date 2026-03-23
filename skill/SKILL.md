@@ -1,231 +1,81 @@
 ---
-name: autoresearch-goal-driven
+name: goal-driven-orchestrator
 description: >
-  Autonomous research orchestrator that combines brainstorming with goal-driven
-  execution. Generates an evolving experiment DAG, spawns isolated workers,
-  verifies results independently, and records the full research evolution.
-  Use when running autonomous experiments, overnight research tasks, or
-  any scenario requiring systematic trial-and-error with memory.
+  Goal-adaptive autonomous orchestrator. Understands your goal through
+  brainstorming, classifies it (research/experiment/hybrid), generates
+  a tailored execution plan as a DAG, then drives workers through the plan
+  with independent verification. Use for autonomous research, systematic
+  experiments, or any goal requiring structured trial-and-error with memory.
 ---
 
-# Autoresearch Goal-Driven Orchestrator
+# Goal-Driven Orchestrator
 
-A master orchestrator for autonomous research that combines:
-1. **Brainstorming Phase** — Understand goals, design experiment strategy
-2. **Goal-Driven Execution** — Spawn workers, verify results, record evolution
-3. **Dynamic DAG Evolution** — Prune dead ends, extend new branches, merge successes
+An autonomous orchestrator that adapts its workflow to your goal.
 
 ## Core Rules
 
 - Do **not** implement solutions yourself — delegate to workers
 - Treat worker results as untrusted until independently verified
-- Keep complete experiment history in `.autoresearch/evolution_dag.json`
-- Every new worker must read prior experiment history
-- Stop when: time budget exhausted, max experiments reached, or all paths dead
+- Keep complete history in `.autoresearch/plan.json`
+- Every new worker must read prior findings/results
+- Stop when: time budget exhausted, goal achieved, or all paths dead
 
 ## Configuration
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `time_budget_minutes` | 60 | Total research time budget |
-| `max_experiments` | 100 | Maximum experiments before stopping |
+| `time_budget_minutes` | 60 | Total time budget |
+| `max_nodes` | 50 | Maximum nodes before stopping |
 | `worker_timeout_seconds` | 360 | Per-worker timeout |
-| `parallel_workers` | 1 | Concurrent workers (future) |
-| `evolution_strategy` | `dynamic` | `static` or `dynamic` |
 
-## Workflow
+## Three-Phase Workflow
 
-Follow this process exactly.
+Follow these phases in order. Each phase has its own instruction file.
 
-### Phase 1: Brainstorming
+### Phase 0: Brainstorm
 
-**Step 1: Understand Context**
+**File:** `BRAINSTORMING.md`
 
-Read in order:
-1. Project README / documentation
-2. Key source files for the task
-3. Prior experiment logs if they exist
-4. Recent commits to understand what's been tried
+Understand the goal through dialogue:
+1. Read project context
+2. Ask clarifying questions (one at a time)
+3. Explore 2-3 approaches with trade-offs
+4. Produce a `goal_spec` with goal_type classification
 
-**Step 2: Clarify the Goal**
+**Output:** `goal_spec` containing goal, constraints, budget, direction, and type.
 
-Ask one question at a time:
-- **Goal**: What metric should we optimize, and what's the target value?
-- **Constraints**: What must we respect? (files not to modify, time limits, etc.)
-- **Budget**: What's our total time budget for this session?
-- **Risk Tolerance**: Conservative incremental or bold experiments?
+### Phase 1: Plan
 
-**Step 3: Design Initial DAG**
+**File:** `PLANNING.md`
 
-Generate 2-5 initial experiments as a DAG:
+Generate the execution plan based on `goal_spec`:
+1. Build a DAG matching the goal_type
+2. Present plan to user for approval
+3. Initialize `.autoresearch/` working directory
 
-```json
-{
-  "nodes": [
-    {
-      "id": "baseline",
-      "parent_ids": [],
-      "hypothesis": "Establish baseline performance",
-      "action": "Run unmodified code"
-    },
-    {
-      "id": "exp_001",
-      "parent_ids": ["baseline"],
-      "hypothesis": "Higher learning rate accelerates convergence",
-      "action": "Increase LR from 0.01 to 0.03"
-    }
-  ]
-}
-```
+**Output:** `plan.json` — a structured DAG ready for execution.
 
-**Step 4: Get User Approval**
+### Phase 2: Execute
 
-Present the DAG and ask:
-> "This is my initial experiment plan. Should I proceed, or modify?"
+**File:** `EXECUTION.md`
 
-**Step 5: Initialize Storage**
+Run the plan:
+1. Pick next ready node from DAG
+2. Route to the right protocol based on node type:
+   - `experiment` → run code, compare metrics
+   - `research` → gather info, verify evidence
+   - `synthesis` → combine findings
+3. Verify independently
+4. Record results, evolve DAG
+5. Check termination → loop or report
 
-Create the working directory and save initial state:
-```
-{workspace}/.autoresearch/
-├── evolution_dag.json
-├── initial_dag.json
-└── experiments_log.md
-```
-
-### Phase 2: Goal-Driven Execution
-
-**Main Loop:**
-
-1. **Select next node** — pick pending node with all parents resolved
-2. **Spawn worker** — isolated execution with timeout
-3. **Verify independently** — run verification commands yourself
-4. **Update node** — record result, mark success/dead_end
-5. **Evolve DAG** — add new nodes based on insights
-6. **Check termination** — time budget? max experiments? all paths dead?
-
-**Worker Prompt Template:**
-
-```
-Your task is to achieve: [node.hypothesis]
-
-Action: [node.action]
-
-Success criteria:
-- [success_criteria from DAG]
-
-Read .autoresearch/experiments_log.md for prior attempts.
-Work only on the implementation.
-Run verification before reporting back.
-Report ONLY when done or blocked with concrete evidence.
-```
-
-**Verification Standards:**
-
-- If criteria mention tests, run those tests
-- If criteria mention a script, run that script
-- If criteria mention output shape, inspect the artifact
-- Never accept "done" at face value — verify yourself
-
-### Phase 3: DAG Evolution
-
-**When a worker succeeds:**
-
-1. Parse the result and insights
-2. Generate child experiments:
-   - **Exploit**: Double down on what worked
-   - **Explore**: Try orthogonal direction
-   - **Combine**: Merge with another successful path
-3. Add new nodes to DAG
-
-**When a worker fails:**
-
-1. Mark node as `dead_end`
-2. Record exact failure reason
-3. Do NOT spawn children from dead ends
-
-**Node Status Transitions:**
-
-```
-pending → running → success | dead_end
-                ↑________|
-                 (retry with different approach)
-```
-
-## DAG Schema
-
-```json
-{
-  "metadata": {
-    "workspace": "/path/to/project",
-    "goal": "Minimize val_bpb",
-    "success_criteria": "val_bpb < 0.95",
-    "time_budget_minutes": 60,
-    "created_at": "2026-03-21T12:00:00Z",
-    "updated_at": "2026-03-21T13:30:00Z"
-  },
-  "nodes": {
-    "baseline": {
-      "id": "baseline",
-      "parent_ids": [],
-      "status": "success",
-      "hypothesis": "Establish baseline",
-      "action": "Run unmodified train.py",
-      "result": {
-        "metric": 0.9979,
-        "commit": "a1b2c3d",
-        "duration_seconds": 320
-      },
-      "insights": ["Baseline performance established"],
-      "children_ids": ["exp_001", "exp_002"]
-    }
-  },
-  "best_node_id": "exp_042",
-  "statistics": {
-    "total_nodes": 47,
-    "success_count": 18,
-    "dead_end_count": 12,
-    "pending_count": 3
-  }
-}
-```
-
-## Output
-
-### Progress Updates
-
-When updating the user:
-- Report verified status only, not worker claims
-- Mention current experiment number
-- Show the verification command(s) run
-- Be explicit about pass/fail
-
-### Final Report
-
-```
-=== Autoresearch Complete ===
-
-Goal: [goal]
-Time: [X] minutes
-Experiments: [N]
-
-Best result: [node_id]
-  - Metric: [value] (improved [delta] from baseline)
-  - Commit: [hash]
-  - Path: baseline → exp_003 → ... → [best]
-
-Evolution summary:
-  - [N] dead ends pruned
-  - [N] new branches discovered
-  - [N] branches merged
-
-See .autoresearch/evolution_dag.json for full history.
-```
+**Output:** `report.md` — final findings with verified/theoretical classification.
 
 ## Boundaries
 
 - Do NOT claim success based only on worker narration
 - Do NOT skip verification because worker sounds confident
-- Do NOT spawn children from dead_end nodes
-- Do NOT exceed time_budget or max_experiments without user escalation
+- Do NOT exceed time_budget or max_nodes without user escalation
 - Do NOT modify files outside the allowed scope
+- Do NOT proceed to Phase 1 without completing Phase 0
+- Do NOT proceed to Phase 2 without user approval of the plan
