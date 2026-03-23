@@ -1,188 +1,151 @@
-# Experiment Brainstorming Guide
+# Brainstorming Guide
 
-Guide for brainstorming experiment strategies before goal-driven execution.
+Phase 0 of the Goal-Driven Orchestrator. Transform a vague goal into a
+structured goal specification with classified type.
 
 ## Purpose
 
-Transform a research goal into a structured experiment DAG that the orchestrator
-can execute. This phase happens ONCE, before execution begins.
+Understand what the user wants before making any plan. This phase produces
+a `goal_spec` that Phase 1 (Planning) consumes.
+
+**Announce at start:** "I'm using the brainstorming skill to understand your goal."
 
 ## Process
 
-### 1. Understand the Research Context
+### 1. Understand the Context
 
 Read in order:
 1. **Project documentation** — README, docs, CLAUDE.md
-2. **Key source files** — the file(s) that will be modified
-3. **Prior experiment logs** — `.autoresearch/experiments_log.md` if exists
-4. **Recent commits** — understand what's been tried recently
+2. **Key source files** — files relevant to the goal
+3. **Prior research** — `.autoresearch/` if exists from previous sessions
+4. **Recent commits** — what's been tried recently
 
 ### 2. Clarify the Goal
 
 Ask one question at a time. Wait for answer before next question.
 
 **Goal Question:**
-> "What metric should we optimize, and what's the target value?"
+> "What specific outcome are you trying to achieve?"
 >
-> Example answer: "Minimize val_bpb, target is under 0.95"
+> Examples:
+> - "Find a viable Polymarket arbitrage strategy"
+> - "Determine the most stable browser data scraping method"
+> - "Compare Playwright vs Puppeteer performance"
 
 **Constraints Question:**
 > "What constraints must we respect?"
 >
 > Examples:
-> - "Cannot modify prepare.py"
-> - "Training must complete in 5 minutes"
-> - "Single GPU only"
+> - "Cannot spend real money for testing"
+> - "Must work on Windows"
+> - "Single machine only"
 
 **Budget Question:**
-> "What's our total time budget for this research session?"
+> "How much time should I spend on this?"
 >
 > Example: "60 minutes" or "overnight (8 hours)"
 
-**Risk Tolerance Question:**
-> "Should we prefer conservative incremental changes or bold experiments?"
+**Depth Question:**
+> "How deep should I go?"
 >
 > Options:
-> - **Conservative** — small changes, each experiment builds on last success
-> - **Aggressive** — try radical changes, accept higher failure rate
-> - **Balanced** — mix of both
+> - **Quick scan** — surface-level overview, fast results
+> - **Thorough** — comprehensive investigation with evidence
+> - **Exhaustive** — leave no stone unturned, verify everything
 
-### 3. Design the Initial DAG
+### 3. Explore Approaches
 
-Based on domain knowledge and the goal, propose 2-5 initial experiments.
-
-**Template for each experiment:**
+Propose 2-3 different approaches with trade-offs:
 
 ```
-ID: [unique identifier, e.g., baseline, exp_001]
-Parent IDs: [node IDs this depends on, or [] for root]
-Hypothesis: [what we're testing, one sentence]
-Action: [concrete change to make]
-Expected: [predicted outcome, optional]
+Approach A: [name]
+  - How: [method]
+  - Pros: [advantages]
+  - Cons: [disadvantages]
+  - Time estimate: [duration]
+
+Approach B: [name]
+  ...
+
+Recommended: [which and why]
 ```
 
-**DAG Design Principles:**
+Wait for user to pick or suggest alternatives.
 
-1. **Always start with baseline** — unmodified code run to establish ground truth
-2. **Create parallel branches** for independent hypotheses
-3. **Create sequential chains** for incremental improvements
-4. **Balance exploration vs exploitation** based on risk tolerance
+### 4. Classify Goal Type
 
-**Example DAG:**
+Based on the conversation, determine the goal type. This is NOT a
+separate step — it falls out naturally from understanding the goal.
+
+**Classification rules:**
+
+| If the goal is about... | Type | Signal words |
+|------------------------|------|-------------|
+| Running code to compare/measure | `experiment` | "test", "compare", "benchmark", "measure", "which is faster" |
+| Gathering information to understand | `research` | "investigate", "analyze", "what is", "how does X work" |
+| Finding a solution (needs both) | `hybrid` | "find a way to", "is X feasible", "how to achieve" |
+
+If unclear, ask:
+> "Would this be answered by running code and measuring results, by
+> gathering and analyzing information, or a mix of both?"
+
+### 5. Confirm the Goal Spec
+
+Present the summary and ask for approval:
 
 ```
-baseline (run unmodified)
-├── exp_001: increase LR (parallel)
-└── exp_002: change architecture (parallel)
-    └── exp_003: combine with LR change (sequential)
+Here's what I understand:
+
+Goal: [one sentence]
+Type: [experiment / research / hybrid]
+Success criteria: [what "done" looks like]
+Constraints: [list]
+Time budget: [X minutes]
+Approach: [chosen approach]
+
+Should I proceed to create the execution plan?
 ```
-
-### 4. Present DAG for Approval
-
-Show the DAG structure and ask:
-> "This is my initial experiment plan:
->
-> [Show DAG structure]
->
-> Should I proceed, or would you like to modify any experiments?"
-
-### 5. Iterate Until Approved
-
-Incorporate user feedback, regenerate DAG, repeat approval step.
 
 ## Output
 
-Once approved, initialize the working directory:
-
-```
-{workspace}/.autoresearch/
-├── evolution_dag.json    # Full DAG (starts with initial nodes)
-├── initial_dag.json      # Initial plan (preserved for reference)
-└── experiments_log.md    # Human-readable log
-```
-
-**evolution_dag.json structure:**
-
-```json
-{
-  "metadata": {
-    "workspace": "{workspace}",
-    "goal": "[goal from user]",
-    "success_criteria": "[criteria from user]",
-    "time_budget_minutes": [budget],
-    "created_at": "[timestamp]",
-    "updated_at": "[timestamp]"
-  },
-  "nodes": {
-    "baseline": {
-      "id": "baseline",
-      "parent_ids": [],
-      "status": "pending",
-      "hypothesis": "Establish baseline performance",
-      "action": "Run unmodified code",
-      "children_ids": []
-    },
-    "exp_001": {
-      "id": "exp_001",
-      "parent_ids": ["baseline"],
-      "status": "pending",
-      "hypothesis": "Higher learning rate accelerates convergence",
-      "action": "Increase LR from 0.01 to 0.03",
-      "children_ids": []
-    }
-  },
-  "best_node_id": null,
-  "statistics": {
-    "total_nodes": 2,
-    "success_count": 0,
-    "dead_end_count": 0,
-    "pending_count": 2
-  }
-}
-```
-
-**experiments_log.md template:**
+The goal_spec. Save to `.autoresearch/goal_spec.md`:
 
 ```markdown
-# Experiments Log
+# Goal Specification
 
 ## Goal
-[goal]
+[one sentence]
+
+## Type
+[experiment / research / hybrid]
 
 ## Success Criteria
-[criteria]
+[what counts as success]
 
 ## Constraints
 - [constraint 1]
 - [constraint 2]
 
 ## Time Budget
-[budget] minutes
+[X] minutes
 
----
+## Approach
+[chosen approach and reasoning]
 
-## Experiments
-
-### baseline
-- **Hypothesis**: Establish baseline performance
-- **Action**: Run unmodified code
-- **Status**: pending
-- **Result**: (to be filled)
-
-### exp_001
-- **Hypothesis**: Higher learning rate accelerates convergence
-- **Action**: Increase LR from 0.01 to 0.03
-- **Parent**: baseline
-- **Status**: pending
-- **Result**: (to be filled)
+## Context
+[relevant project info discovered in step 1]
 ```
+
+## After Approval
+
+Invoke the planning phase. Read `PLANNING.md` and follow it.
 
 ## Anti-Patterns
 
 | Don't | Do Instead |
 |-------|------------|
-| Skip the baseline | Always run unmodified code first |
-| Create huge DAGs upfront | Start small, let it evolve |
-| Assume all experiments succeed | Design experiments that fail informatively |
+| Skip context reading | Always check existing project state first |
 | Ask multiple questions at once | One question per message |
-| Proceed without approval | Always get explicit user buy-in |
+| Assume the goal type | Let it emerge from conversation |
+| Jump to planning without approval | Always get explicit user sign-off |
+| Over-complicate simple goals | Scale depth to match the actual need |
