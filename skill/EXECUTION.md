@@ -207,16 +207,31 @@ Create file: .autoresearch/findings/{node.id}.json
 Do NOT edit plan.json or findings_log.md.
 ```
 
-### Spawn Command
+### Spawn Command (OpenClaw)
+
+Use `sessions_spawn` to create worker subagents:
 
 ```
 DO:
-  sessions_spawn(label="worker-{node.id}", task={prompt})
-  Update node: status = "running", started_at = now()
-  Save plan.json
+  1. Construct prompt based on node type (see above)
+  2. sessions_spawn(
+       label="worker-{node.id}",
+       task=prompt,
+       mode="run",
+       runtime="subagent",
+       model="default",
+       runTimeoutSeconds={worker_timeout_seconds}
+     )
+  3. Update node: status = "running", started_at = now()
+  4. Save plan.json
+
 ERROR:
-  Spawn fails → retry once → if still fails, mark node as
-  "error" with reason "spawn_failed"
+  Spawn fails → retry once → if still fails, mark node as "error" with reason "spawn_failed"
+
+### Worker Result Retrieval
+
+Workers save results to `.autoresearch/results/` or `.autoresearch/findings/`.
+After spawn completes, read the result file to verify.
 ```
 
 ---

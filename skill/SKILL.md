@@ -71,6 +71,22 @@ Run the plan:
 
 **Output:** `report.md` — final findings with verified/theoretical classification.
 
+## OpenClaw Integration
+
+This skill is designed for OpenClaw. Workers are spawned via `sessions_spawn`:
+
+```json
+{
+  "tool": "sessions_spawn",
+  "task": "Worker prompt here...",
+  "label": "worker-RES_01",
+  "mode": "run",
+  "runtime": "subagent",
+  "model": "default",
+  "runTimeoutSeconds": 360
+}
+```
+
 ## Boundaries
 
 - Do NOT claim success based only on worker narration

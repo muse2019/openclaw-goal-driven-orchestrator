@@ -1,0 +1,27 @@
+{
+  "name": "goal-driven-orchestrator",
+  "version": "1.0.0",
+  "description": "Goal-adaptive autonomous orchestrator for OpenClaw. Understands your goal through brainstorming, classifies it, generates execution DAG, drives workers with independent verification.",
+  "openclaw": {
+    "minVersion": "2026.3.0",
+    "tools": ["sessions_spawn", "sessions_send", "sessions_list", "read", "write", "edit", "exec"],
+    "permissions": ["spawn_subagent", "file_read", "file_write", "exec"]
+  },
+  "configuration": {
+    "time_budget_minutes": {
+      "type": "number",
+      "default": 60,
+      "description": "Total time budget for the goal"
+    },
+    "max_nodes": {
+      "type": "number",
+      "default": 50,
+      "description": "Maximum DAG nodes before stopping"
+    },
+    "worker_timeout_seconds": {
+      "type": "number",
+      "default": 360,
+      "description": "Per-worker timeout"
+    }
+  }
+}
